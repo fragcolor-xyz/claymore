@@ -27,4 +27,5 @@ jobs:
           submodules: recursive
       - name: Test
         run: |
+          mv chainblocks ../
           cargo test
