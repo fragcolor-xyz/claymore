@@ -2,10 +2,9 @@ extern crate chainblocks;
 extern crate edn_rs;
 
 use chainblocks::cbl_env;
-use chainblocks::types::ClonedVar;
-use chainblocks::types::Table;
+use chainblocks::types::{ClonedVar, Table, Var};
 use edn_rs::{edn, Edn, Map};
-
+use std::fs;
 use std::sync::Once;
 
 static INIT: Once = Once::new();
@@ -40,4 +39,22 @@ fn edn_rs_usage() {
   assert_eq!(b, 2);
   let c = <i64>::try_from(res.get_fast_static("c\0")).unwrap();
   assert_eq!(c, 3);
+}
+
+#[no_mangle]
+pub extern "C" fn clmr_load_file(path: *const u8, path_len: usize, output: *mut Var) -> bool {
+  initialize();
+
+  let path = unsafe { std::slice::from_raw_parts(path, path_len) };
+  let path = std::str::from_utf8(path).expect("Failed to convert path to utf8");
+  let contents = fs::read_to_string(path).expect("Something went wrong reading the file");
+  let res = cbl_env!(contents);
+  if let Some(res) = res {
+    unsafe {
+      *output = res.0;
+    }
+    true
+  } else {
+    false
+  }
 }
