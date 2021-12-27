@@ -18,6 +18,14 @@ jobs:
         with:
           fetch-depth: 1
           submodules: recursive
+      - name: Checkout Chainblocks
+        uses: actions/checkout@v2
+        with:
+          repository: https://github.com/fragcolor-xyz/chainblocks.git
+          ref: devel
+          fetch-depth: 1
+          submodules: recursive
+          path: ../
       - name: Test
         run: |
           cargo test
