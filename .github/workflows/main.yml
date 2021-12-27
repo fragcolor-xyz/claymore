@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - devel
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+          submodules: recursive
+      - name: Test
+        run: |
+          cargo test
