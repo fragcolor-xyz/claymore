@@ -21,7 +21,7 @@ jobs:
       - name: Checkout Chainblocks
         uses: actions/checkout@v2
         with:
-          repository: https://github.com/fragcolor-xyz/chainblocks.git
+          repository: fragcolor-xyz/chainblocks
           ref: devel
           fetch-depth: 1
           submodules: recursive
