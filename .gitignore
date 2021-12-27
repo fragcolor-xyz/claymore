@@ -1,5 +1,5 @@
 /target
-.*/
 *.log
 *.lock
--.github
+.lsp
+.clj-kondo

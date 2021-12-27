@@ -18,6 +18,7 @@ jobs:
         with:
           fetch-depth: 1
           submodules: recursive
+          path: claymore
       - name: Checkout Chainblocks
         uses: actions/checkout@v2
         with:
@@ -28,5 +29,5 @@ jobs:
           path: chainblocks
       - name: Test
         run: |
-          mv chainblocks ../
+          cd claymore
           cargo test
