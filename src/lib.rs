@@ -1,10 +1,9 @@
-extern crate chainblocks;
-extern crate edn_rs;
-
-use chainblocks::{cbl, cbl_env, cblisp::{new_env, new_sub_env}};
-use chainblocks::types::{ClonedVar, Table, Var};
+use chainblocks::{
+  cbl, cbl_env,
+  cblisp::{new_env, new_sub_env},
+  types::{ChainRef, ClonedVar, ExternalVar, Node, Table, Var},
+};
 use edn_rs::{edn, Edn, Map};
-use std::fs;
 use std::sync::Once;
 
 static INIT: Once = Once::new();
@@ -15,11 +14,38 @@ pub fn initialize() {
   });
 }
 
+/// If at_block is 0 then the current block is used.
+#[no_mangle]
+pub extern "C" fn clmrGetData(fragment_hash: *const u8, at_block: u32, output: *mut Var) -> bool {
+  initialize();
+  //TODO
+  false
+}
+
+#[test]
+fn chain() {
+  initialize();
+
+  let chain = cbl!(include_str!("test-chain.edn")).unwrap();
+  let chain = <ChainRef>::try_from(chain.0).unwrap();
+  let variable: Var = 10i32.into();
+  let variable: ExternalVar = variable.into();
+  let result: Var = 0i32.into();
+  let result: ExternalVar = result.into();
+  chain.set_external("extern1", &variable);
+  chain.set_external("result", &result);
+  let node = Node::default();
+  node.schedule(chain);
+  assert!(node.tick());
+  let res = <i64>::try_from(&result.0).unwrap();
+  assert_eq!(res, 20i64);
+}
+
 #[test]
 fn main() {
   initialize();
 
-  let res = cbl!(include_str!("test.edn")).unwrap();
+  let res = cbl!(include_str!("test-simple.edn")).unwrap();
   let res = <i64>::try_from(&res.0).unwrap();
   assert_eq!(res, 99);
 }
@@ -68,22 +94,4 @@ fn sub_envs() {
   let y = cbl_env!(sub3, "y").unwrap();
   let y = <i64>::try_from(&y.0).unwrap();
   assert_eq!(y, 13);
-}
-
-#[no_mangle]
-pub extern "C" fn clmr_load_file(path: *const u8, path_len: usize, output: *mut Var) -> bool {
-  initialize();
-
-  let path = unsafe { std::slice::from_raw_parts(path, path_len) };
-  let path = std::str::from_utf8(path).expect("Failed to convert path to utf8");
-  let contents = fs::read_to_string(path).expect("Something went wrong reading the file");
-  let res = cbl!(contents);
-  if let Some(res) = res {
-    unsafe {
-      *output = res.0;
-    }
-    true
-  } else {
-    false
-  }
 }

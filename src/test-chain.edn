@@ -1,0 +1,5 @@
+(Chain "test-chain" :Looped ; set looped in order to pass 1 tick test
+       .extern1
+       (Log "adding 10 to")
+       (Math.Add 10) > .result
+       (Log "result"))

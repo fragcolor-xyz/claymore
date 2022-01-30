@@ -10,7 +10,7 @@ crate-type = ["dylib"]
 
 [dependencies]
 chainblocks = { path = "../chainblocks/rust", features = ["run_bindgen", "dllblock", "cblisp"] }
-edn-rs = "0.16.12"
+edn-rs = "0.17.0"
 
 [build-dependencies]
 cmake = "0.1"
