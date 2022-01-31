@@ -1,6 +1,7 @@
 use chainblocks::{
   cbl, cbl_env,
   cblisp::{new_env, new_sub_env},
+  core::cloneVar,
   types::{ChainRef, ClonedVar, ExternalVar, Node, Table, Var},
 };
 use edn_rs::{edn, Edn, Map};
@@ -14,12 +15,73 @@ pub fn initialize() {
   });
 }
 
+#[repr(C)]
+pub enum PollState {
+  Running,
+  Failed,
+  Finished,
+}
+
+#[repr(C)]
+pub struct GetDataRequest {
+  pub chain: ChainRef,
+  hash: ExternalVar,
+  timeout: ExternalVar,
+  result: ExternalVar,
+}
+
 /// If at_block is 0 then the current block is used.
 #[no_mangle]
-pub extern "C" fn clmrGetData(fragment_hash: *const u8, at_block: u32, output: *mut Var) -> bool {
+pub extern "C" fn clmrGetDataStart(fragment_hash: *const u8) -> *mut GetDataRequest {
   initialize();
-  //TODO
-  false
+
+  let chain = cbl!(include_str!("fetch-fragment.edn")).unwrap();
+  let chain = <ChainRef>::try_from(chain.0).unwrap();
+
+  let hash = unsafe { std::slice::from_raw_parts(fragment_hash, 32) };
+  let hash = hash.into();
+  chain.set_external("hash", &hash);
+
+  let timeout = 30i32.into();
+  chain.set_external("timeout", &timeout);
+
+  let result: [u8; 0] = [];
+  let result = result[..].into();
+  chain.set_external("result", &result);
+
+  let res = Box::new(GetDataRequest {
+    chain,
+    hash,
+    timeout,
+    result,
+  });
+
+  Box::into_raw(res)
+}
+
+#[no_mangle]
+pub extern "C" fn clmrGetDataPoll(request: *mut GetDataRequest, output: *mut Var) -> PollState {
+  // let request = unsafe { Box::from_raw(request) };
+  let chain = unsafe { (*request).chain };
+  match chain.get_result() {
+    Ok(result) => {
+      if let Some(result) = result {
+        unsafe {
+          cloneVar(&mut *output, &result.0);
+        }
+        // also allow dropping!
+        let _ = unsafe { Box::from_raw(request) };
+        PollState::Finished
+      } else {
+        PollState::Running
+      }
+    }
+    Err(_err) => {
+      // also allow dropping!
+      let _ = unsafe { Box::from_raw(request) };
+      PollState::Failed
+    }
+  }
 }
 
 #[test]
@@ -28,10 +90,8 @@ fn chain() {
 
   let chain = cbl!(include_str!("test-chain.edn")).unwrap();
   let chain = <ChainRef>::try_from(chain.0).unwrap();
-  let variable: Var = 10i32.into();
-  let variable: ExternalVar = variable.into();
-  let result: Var = 0i32.into();
-  let result: ExternalVar = result.into();
+  let variable = 10i32.into();
+  let result = 0i32.into();
   chain.set_external("extern1", &variable);
   chain.set_external("result", &result);
   let node = Node::default();

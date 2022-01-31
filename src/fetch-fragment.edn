@@ -1,0 +1,17 @@
+(Chain "fetch-fragment"
+       .hash >= .frag-cid
+       "0x0155a0e40220" (HexToBytes) (PrependTo .frag-cid)
+       .frag-cid (ToBase58) >= .url
+       "z" (PrependTo .url)
+       .url >= .local-path
+       "cache/frag/" (PrependTo .local-path)
+       (Maybe
+        (->
+         (ReadFile .local-path))
+        (->
+         .url (Log "Fetching CID")
+         "https://dweb.link/api/v0/block/get/" (PrependTo .url)
+         nil (Http.Get .url :Bytes true :Timeout .timeout) (FromBytes)
+         ; store the fragment in the cache
+         (WriteFile .local-path :Flush true)))
+       (ExpectBytes) > .result)
