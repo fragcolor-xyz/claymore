@@ -11,7 +11,9 @@
         (->
          .url (Log "Fetching CID")
          "https://dweb.link/api/v0/block/get/" (PrependTo .url)
-         nil (Http.Get .url :Bytes true :Timeout .timeout) (FromBytes)
+         nil (Http.Get .url :Bytes true :Timeout .timeout)
+         (Brotli.Decompress) ; decompress
+         (FromBytes) ; deserialize into chainblocks Vars
          ; store the fragment in the cache
          (WriteFile .local-path :Flush true)))
        (ExpectBytes) > .result)

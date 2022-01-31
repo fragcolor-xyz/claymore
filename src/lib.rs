@@ -15,6 +15,9 @@ pub fn initialize() {
   });
 }
 
+// TODO, the following are fully C API calls.. we should instead implement them in pure rust so to use
+// the same code for both C and Rust and rust side could become a command line tool to inspect fragments
+
 #[repr(C)]
 pub enum PollState {
   Running,
