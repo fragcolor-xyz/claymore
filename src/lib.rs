@@ -18,31 +18,26 @@ pub fn initialize() {
 // TODO, the following are fully C API calls.. we should instead implement them in pure rust so to use
 // the same code for both C and Rust and rust side could become a command line tool to inspect fragments
 
-#[repr(C)]
 pub enum PollState {
   Running,
-  Failed,
-  Finished,
+  Failed(String),
+  Finished(ClonedVar),
 }
 
-#[repr(C)]
 pub struct GetDataRequest {
-  hash: ExternalVar,
-  timeout: ExternalVar,
-  result: ExternalVar,
-  // last for better alignment
   pub chain: ChainRef,
+  pub hash: ExternalVar,
+  pub timeout: ExternalVar,
+  pub result: ExternalVar,
 }
 
-#[no_mangle]
-pub extern "C" fn clmrGetDataStart(fragment_hash: *const u8) -> *mut GetDataRequest {
+pub fn start_get_data(fragment_hash: [u8; 32]) -> GetDataRequest {
   initialize();
 
   let chain = cbl!(include_str!("fetch-fragment.edn")).unwrap();
   let chain = <ChainRef>::try_from(chain.0).unwrap();
 
-  let hash = unsafe { std::slice::from_raw_parts(fragment_hash, 32) };
-  let hash = hash.into();
+  let hash = fragment_hash[..].into();
   chain.set_external("hash", &hash);
 
   let timeout = 30i32.into();
@@ -52,37 +47,46 @@ pub extern "C" fn clmrGetDataStart(fragment_hash: *const u8) -> *mut GetDataRequ
   let result = result[..].into();
   chain.set_external("result", &result);
 
-  let res = Box::new(GetDataRequest {
+  GetDataRequest {
     chain,
     hash,
     timeout,
     result,
-  });
-
-  Box::into_raw(res)
+  }
 }
 
+// C bindings
+
 #[no_mangle]
-pub extern "C" fn clmrPollChain(chain: ChainRef, output: *mut Var) -> PollState {
+pub extern "C" fn clmrGetDataStart(fragment_hash: *const u8) -> *mut GetDataRequest {
+  let hash = unsafe { std::slice::from_raw_parts(fragment_hash, 32) };
+  let hash_fixed: [u8; 32] = hash.try_into().unwrap();
+  let boxed = Box::new(start_get_data(hash_fixed));
+  Box::into_raw(boxed)
+}
+
+pub fn poll_chain(chain: ChainRef) -> PollState {
   match chain.get_result() {
     Ok(result) => {
       if let Some(result) = result {
-        unsafe {
-          cloneVar(&mut *output, &result.0);
-        }
-        // also allow dropping!
-        let _ = unsafe { Box::from_raw(request) };
-        PollState::Finished
+        PollState::Finished(result)
       } else {
         PollState::Running
       }
     }
-    Err(_err) => {
-      // also allow dropping!
-      let _ = unsafe { Box::from_raw(request) };
-      PollState::Failed
+    Err(err) => {
+      PollState::Failed(err.to_string())
     }
   }
+}
+
+// C bindings
+
+#[no_mangle]
+pub extern "C" fn clmrGetDataPoll(request: *mut GetDataRequest, output: *mut Var) -> PollState {
+  // let request = unsafe { Box::from_raw(request) };
+  let chain = unsafe { (*request).chain };
+  poll_chain(chain)
 }
 
 #[test]
