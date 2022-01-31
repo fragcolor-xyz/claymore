@@ -6,6 +6,7 @@ fn main() {
     .build_target("cbl-dll")
     .build();
   println!("cargo:rustc-link-search=native={}/build/lib", dst.display());
+  println!("cargo:rustc-link-search=native={}/build", dst.display());
   println!("cargo:rustc-link-lib=dylib=cbl");
 
   let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
