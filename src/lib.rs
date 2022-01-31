@@ -27,13 +27,13 @@ pub enum PollState {
 
 #[repr(C)]
 pub struct GetDataRequest {
-  pub chain: ChainRef,
   hash: ExternalVar,
   timeout: ExternalVar,
   result: ExternalVar,
+  // last for better alignment
+  pub chain: ChainRef,
 }
 
-/// If at_block is 0 then the current block is used.
 #[no_mangle]
 pub extern "C" fn clmrGetDataStart(fragment_hash: *const u8) -> *mut GetDataRequest {
   initialize();
