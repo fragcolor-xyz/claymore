@@ -63,9 +63,7 @@ pub extern "C" fn clmrGetDataStart(fragment_hash: *const u8) -> *mut GetDataRequ
 }
 
 #[no_mangle]
-pub extern "C" fn clmrGetDataPoll(request: *mut GetDataRequest, output: *mut Var) -> PollState {
-  // let request = unsafe { Box::from_raw(request) };
-  let chain = unsafe { (*request).chain };
+pub extern "C" fn clmrPollChain(chain: ChainRef, output: *mut Var) -> PollState {
   match chain.get_result() {
     Ok(result) => {
       if let Some(result) = result {
