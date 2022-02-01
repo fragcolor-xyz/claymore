@@ -6,6 +6,7 @@ use chainblocks::{
 };
 use edn_rs::{edn, Edn, Map};
 use std::sync::Once;
+use std::{thread, time};
 
 static INIT: Once = Once::new();
 
@@ -15,42 +16,36 @@ pub fn initialize() {
   });
 }
 
-// TODO, the following are fully C API calls.. we should instead implement them in pure rust so to use
-// the same code for both C and Rust and rust side could become a command line tool to inspect fragments
-
+#[repr(C)]
 pub enum PollState {
   Running,
-  Failed(String),
+  Failed(ClonedVar),
   Finished(ClonedVar),
 }
 
+#[repr(C)]
 pub struct GetDataRequest {
-  pub chain: ChainRef,
+  pub chain: ClonedVar,
   pub hash: ExternalVar,
-  pub timeout: ExternalVar,
   pub result: ExternalVar,
 }
 
 pub fn start_get_data(fragment_hash: [u8; 32]) -> GetDataRequest {
   initialize();
 
-  let chain = cbl!(include_str!("fetch-fragment.edn")).unwrap();
-  let chain = <ChainRef>::try_from(chain.0).unwrap();
+  let chain_var = cbl!(include_str!("fetch-fragment.edn")).unwrap();
+  let chain = <ChainRef>::try_from(chain_var.0).unwrap();
 
-  let hash = fragment_hash[..].into();
-  chain.set_external("hash", &hash);
-
-  let timeout = 30i32.into();
-  chain.set_external("timeout", &timeout);
+  let mut hash = fragment_hash[..].into();
+  chain.set_external("hash", &mut hash);
 
   let result: [u8; 0] = [];
-  let result = result[..].into();
-  chain.set_external("result", &result);
+  let mut result = result[..].into();
+  chain.set_external("result", &mut result);
 
   GetDataRequest {
-    chain,
+    chain: chain_var,
     hash,
-    timeout,
     result,
   }
 }
@@ -65,6 +60,13 @@ pub extern "C" fn clmrGetDataStart(fragment_hash: *const u8) -> *mut GetDataRequ
   Box::into_raw(boxed)
 }
 
+#[no_mangle]
+pub extern "C" fn clmrGetDataFree(request: *mut GetDataRequest) {
+  unsafe {
+    Box::from_raw(request);
+  }
+}
+
 pub fn poll_chain(chain: ChainRef) -> PollState {
   match chain.get_result() {
     Ok(result) => {
@@ -75,7 +77,8 @@ pub fn poll_chain(chain: ChainRef) -> PollState {
       }
     }
     Err(err) => {
-      PollState::Failed(err.to_string())
+      let err: ClonedVar = err.into();
+      PollState::Failed(err)
     }
   }
 }
@@ -83,10 +86,19 @@ pub fn poll_chain(chain: ChainRef) -> PollState {
 // C bindings
 
 #[no_mangle]
-pub extern "C" fn clmrGetDataPoll(request: *mut GetDataRequest, output: *mut Var) -> PollState {
+pub extern "C" fn clmrGetDataPoll(request: *mut GetDataRequest) -> *mut PollState {
   // let request = unsafe { Box::from_raw(request) };
-  let chain = unsafe { (*request).chain };
-  poll_chain(chain)
+  let chain = unsafe { &(*request).chain };
+  let chain = <ChainRef>::try_from(chain.0).unwrap();
+  let boxed = Box::new(poll_chain(chain));
+  Box::into_raw(boxed)
+}
+
+#[no_mangle]
+pub extern "C" fn clmrVarFree(var: *mut ClonedVar) {
+  unsafe {
+    Box::from_raw(var);
+  }
 }
 
 #[test]
@@ -95,10 +107,10 @@ fn chain() {
 
   let chain = cbl!(include_str!("test-chain.edn")).unwrap();
   let chain = <ChainRef>::try_from(chain.0).unwrap();
-  let variable = 10i32.into();
-  let result = 0i32.into();
-  chain.set_external("extern1", &variable);
-  chain.set_external("result", &result);
+  let mut variable = 10i32.into();
+  let mut result = 0i32.into();
+  chain.set_external("extern1", &mut variable);
+  chain.set_external("result", &mut result);
   let node = Node::default();
   node.schedule(chain);
   assert!(node.tick());
@@ -159,4 +171,48 @@ fn sub_envs() {
   let y = cbl_env!(sub3, "y").unwrap();
   let y = <i64>::try_from(&y.0).unwrap();
   assert_eq!(y, 13);
+}
+
+#[test]
+fn fragment_get_data_test() {
+  initialize();
+
+  let mut hash: [u8; 32] = [0; 32];
+  hex::decode_to_slice(
+    "953f867f5e7af34b031d2689ea1486420571dfac0cd4043b173b0035e621c0dd",
+    &mut hash,
+  )
+  .unwrap();
+
+  let chain_var = cbl!(include_str!("fetch-fragment.edn")).unwrap();
+  let chain = <ChainRef>::try_from(chain_var.0).unwrap();
+
+  let mut hash = hash[..].into();
+  chain.set_external("hash", &mut hash);
+
+  let result: [u8; 0] = [];
+  let mut result = result[..].into();
+  chain.set_external("result", &mut result);
+
+  let node = Node::default();
+  node.schedule(chain);
+  loop {
+    node.tick();
+    let status = poll_chain(chain);
+    match status {
+      PollState::Finished(result) => {
+        let result = <&[u8]>::try_from(&result.0).unwrap();
+        assert_eq!(result, b"");
+        break;
+      }
+      PollState::Failed(err) => {
+        let err = <&str>::try_from(&err.0).unwrap();
+        panic!("{}", err);
+      }
+      PollState::Running => {
+        let ten_millis = time::Duration::from_millis(100);
+        thread::sleep(ten_millis);
+      }
+    }
+  }
 }

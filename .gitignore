@@ -3,3 +3,4 @@
 *.lock
 .lsp
 .clj-kondo
+.vscode/launch.json

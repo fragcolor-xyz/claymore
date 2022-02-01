@@ -22,8 +22,8 @@ fn main() {
   config.cpp_compat = true;
   config.after_includes = Some(
     r#"
-#define ExternalVar CBVar
-#define Var CBVar"#
+#define ExternalVar struct CBVar
+#define Var struct CBVar"#
       .to_string(),
   );
   cbindgen::generate_with_config(&crate_dir, config)
