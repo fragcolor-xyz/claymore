@@ -4,6 +4,7 @@ use std::env;
 fn main() {
   let dst = Config::new("../chainblocks")
     .build_target("cbl-dll")
+    .define("USE_FPIC", "1")
     .build();
   println!("cargo:rustc-link-search=native={}/build/lib", dst.display());
   println!("cargo:rustc-link-search=native={}/build", dst.display());
