@@ -2,10 +2,15 @@ use cmake::Config;
 use std::env;
 
 fn main() {
-  let dst = Config::new("../chainblocks")
-    .build_target("cbl-dll")
-    .define("USE_FPIC", "1")
-    .build();
+  let mut dst = Config::new("../chainblocks");
+
+  dst.build_target("cbl-dll");
+
+  #[cfg(target_os = "linux")]
+  dst.define("USE_FPIC", "1");
+
+  let dst = dst.build();
+
   println!("cargo:rustc-link-search=native={}/build/lib", dst.display());
   println!("cargo:rustc-link-search=native={}/build", dst.display());
   println!("cargo:rustc-link-lib=dylib=cbl");
