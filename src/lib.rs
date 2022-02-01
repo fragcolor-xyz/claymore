@@ -24,30 +24,29 @@ pub enum PollState {
 }
 
 #[repr(C)]
+#[derive(Default)]
 pub struct GetDataRequest {
   pub chain: ClonedVar,
   pub hash: ExternalVar,
   pub result: ExternalVar,
 }
 
-pub fn start_get_data(fragment_hash: [u8; 32]) -> GetDataRequest {
+pub fn start_get_data(fragment_hash: [u8; 32]) -> Box<GetDataRequest> {
   initialize();
 
-  let chain_var = cbl!(include_str!("fetch-fragment.edn")).unwrap();
-  let chain = <ChainRef>::try_from(chain_var.0).unwrap();
+  let mut request = Box::new(GetDataRequest::default());
 
-  let mut hash = fragment_hash[..].into();
-  chain.set_external("hash", &mut hash);
+  request.chain = cbl!(include_str!("fetch-fragment.edn")).unwrap();
+  let chain = <ChainRef>::try_from(request.chain.0).unwrap();
+
+  request.hash = fragment_hash[..].into();
+  chain.set_external("hash", &mut request.hash);
 
   let result: [u8; 0] = [];
-  let mut result = result[..].into();
-  chain.set_external("result", &mut result);
+  request.result = result[..].into();
+  chain.set_external("result", &mut request.result);
 
-  GetDataRequest {
-    chain: chain_var,
-    hash,
-    result,
-  }
+  request
 }
 
 // C bindings
@@ -56,7 +55,7 @@ pub fn start_get_data(fragment_hash: [u8; 32]) -> GetDataRequest {
 pub extern "C" fn clmrGetDataStart(fragment_hash: *const u8) -> *mut GetDataRequest {
   let hash = unsafe { std::slice::from_raw_parts(fragment_hash, 32) };
   let hash_fixed: [u8; 32] = hash.try_into().unwrap();
-  let boxed = Box::new(start_get_data(hash_fixed));
+  let boxed = start_get_data(hash_fixed);
   Box::into_raw(boxed)
 }
 
@@ -86,18 +85,29 @@ pub fn poll_chain(chain: ChainRef) -> PollState {
 // C bindings
 
 #[no_mangle]
-pub extern "C" fn clmrGetDataPoll(request: *mut GetDataRequest) -> *mut PollState {
-  // let request = unsafe { Box::from_raw(request) };
-  let chain = unsafe { &(*request).chain };
-  let chain = <ChainRef>::try_from(chain.0).unwrap();
-  let boxed = Box::new(poll_chain(chain));
-  Box::into_raw(boxed)
+pub extern "C" fn clmrPoll(chain: *const Var, output: *mut *mut PollState) -> bool {
+  let chain = unsafe { <ChainRef>::try_from(*chain).unwrap() };
+  match poll_chain(chain) {
+    PollState::Running => false,
+    PollState::Failed(err) => {
+      unsafe {
+        *output = Box::into_raw(Box::new(PollState::Failed(err)));
+      }
+      true
+    }
+    PollState::Finished(result) => {
+      unsafe {
+        *output = Box::into_raw(Box::new(PollState::Finished(result)));
+      }
+      true
+    }
+  }
 }
 
 #[no_mangle]
-pub extern "C" fn clmrVarFree(var: *mut ClonedVar) {
+pub extern "C" fn clmrPollFree(state: *mut PollState) {
   unsafe {
-    Box::from_raw(var);
+    Box::from_raw(state);
   }
 }
 
@@ -184,18 +194,12 @@ fn fragment_get_data_test() {
   )
   .unwrap();
 
-  let chain_var = cbl!(include_str!("fetch-fragment.edn")).unwrap();
-  let chain = <ChainRef>::try_from(chain_var.0).unwrap();
-
-  let mut hash = hash[..].into();
-  chain.set_external("hash", &mut hash);
-
-  let result: [u8; 0] = [];
-  let mut result = result[..].into();
-  chain.set_external("result", &mut result);
+  let request = start_get_data(hash);
+  let chain = <ChainRef>::try_from(request.chain.0).unwrap();
 
   let node = Node::default();
   node.schedule(chain);
+
   loop {
     node.tick();
     let status = poll_chain(chain);
