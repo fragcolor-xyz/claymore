@@ -16,7 +16,7 @@ pub fn initialize() {
   });
 }
 
-#[repr(C)]
+#[repr(u8)]
 pub enum PollState {
   Running,
   Failed(ClonedVar),

@@ -1,0 +1,20 @@
+[package]
+name = "claymore"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+chainblocks = { path = "../../chainblocks/rust", features = ["run_bindgen", "dllblock", "cblisp"] }
+edn-rs = "0.17.0"
+
+[build-dependencies]
+cmake = "0.1"
+cbindgen = "0.20.0"
+
+[dev-dependencies]
+hex = "0.4.3"

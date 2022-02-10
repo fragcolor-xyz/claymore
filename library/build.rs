@@ -2,7 +2,7 @@ use cmake::Config;
 use std::env;
 
 fn main() {
-  let mut dst = Config::new("../chainblocks");
+  let mut dst = Config::new("../../chainblocks");
 
   dst.build_target("cbl-dll");
 
