@@ -112,14 +112,20 @@ pub extern "C" fn clmrPollFree(state: *mut PollState) {
 }
 
 pub fn proto_upload(node_url: &str, proto_type: &str, buffer: &[u8]) -> Result<(), &'static str> {
-  let chain = cbl!(include_str!("proto-upload.edn")).unwrap();
-  let chain = <ChainRef>::try_from(chain.0).unwrap();
+  initialize();
+
+  let chain = cbl!(include_str!("proto-upload.edn")).expect("proto-upload script processing");
+  let chain = <ChainRef>::try_from(chain.0).expect("proto-upload chain");
+
   let mut node: ExternalVar = node_url.into();
   chain.set_external("node", &mut node);
+
   let mut type_: ExternalVar = proto_type.into();
   chain.set_external("type", &mut type_);
+
   let mut buffer: ExternalVar = buffer.into();
   chain.set_external("buffer", &mut buffer);
+
   Err("not implemented")
 }
 
