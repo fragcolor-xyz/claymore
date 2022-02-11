@@ -1,0 +1,5 @@
+(Chain "fetch-fragment"
+       .node (Log "node")
+       .type (Log "type")
+       .key (Log "key")
+       .buffer (Log "buffer"))
