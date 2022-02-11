@@ -1,5 +1,6 @@
 use clap::{App, AppSettings, Arg};
 use std::io::Read;
+use claymore::proto_upload;
 
 fn main() {
   let matches = App::new("claytool")
@@ -47,6 +48,8 @@ fn main() {
         let mut file = std::fs::File::open(upload).expect("File to upload as proto-fragment");
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer).unwrap();
+
+        proto_upload(node, type_, &buffer).unwrap();
       }
     }
     _ => {}
