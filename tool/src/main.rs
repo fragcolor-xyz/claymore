@@ -1,19 +1,54 @@
-use clap::Parser;
-
-/// Simple program to greet a person
-#[derive(Parser, Debug)]
-#[clap(author, version, about, long_about = None)]
-struct Args {
-  /// Name of the person to greet
-  #[clap(short, long)]
-  name: String,
-
-  /// Number of times to greet
-  #[clap(short, long, default_value_t = 1)]
-  count: u8,
-}
+use clap::{App, AppSettings, Arg};
+use std::io::Read;
 
 fn main() {
-  let args = Args::parse();
-  println!("Hello, world!");
+  let matches = App::new("claytool")
+    .about("claymore utility")
+    .version("0.1")
+    .setting(AppSettings::SubcommandRequiredElseHelp)
+    .author("Fragcolor Pte. Ltd.")
+    .subcommand(
+      App::new("proto")
+        .short_flag('P')
+        .long_flag("proto")
+        .about("Proto-fragments management tools.")
+        .arg(
+          Arg::new("file")
+            .short('u')
+            .long("upload")
+            .help("Uploads a proto-fragment to a Clamor node")
+            .takes_value(true)
+            .required_unless_present("help"),
+        )
+        .arg(
+          Arg::new("type")
+            .short('t')
+            .long("type")
+            .help("The type of the proto-fragment to upload")
+            .takes_value(true)
+            .required_unless_present("help"),
+        )
+        .arg(
+          Arg::new("node")
+            .short('n')
+            .long("node")
+            .help("The Clamor node endpoint to send commands to")
+            .default_value("http://127.0.0.1:9933")
+            .takes_value(true),
+        ),
+    )
+    .get_matches();
+
+  match matches.subcommand() {
+    Some(("proto", matches)) => {
+      if let Some(upload) = matches.value_of("file") {
+        let node = matches.value_of("node").unwrap();
+        let type_ = matches.value_of("type").unwrap();
+        let mut file = std::fs::File::open(upload).expect("File to upload as proto-fragment");
+        let mut buffer = Vec::new();
+        file.read_to_end(&mut buffer).unwrap();
+      }
+    }
+    _ => {}
+  }
 }
