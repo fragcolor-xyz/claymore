@@ -14,6 +14,8 @@ fn main() {
   println!("cargo:rustc-link-search=native={}/build/lib", dst.display());
   println!("cargo:rustc-link-search=native={}/build", dst.display());
   println!("cargo:rustc-link-lib=dylib=cbl");
+  #[cfg(any(target_os = "macos", target_os = "ios"))]
+  println!("cargo:rustc-link-arg=-Wl,-rpath,@executable_path/");
 
   let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
   let mut config: cbindgen::Config = Default::default();
