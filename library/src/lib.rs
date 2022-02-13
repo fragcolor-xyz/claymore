@@ -113,8 +113,9 @@ pub extern "C" fn clmrPollFree(state: *mut PollState) {
 
 pub fn proto_upload(
   node_url: &str,
-  proto_type: &str,
+  signer_key: &str,
   auth_key: &str,
+  proto_type: &str,
   buffer: &[u8],
 ) -> Result<(), &'static str> {
   initialize();
@@ -128,13 +129,16 @@ pub fn proto_upload(
   let chain = <ChainRef>::try_from(chain.0).expect("proto-upload chain");
 
   let mut node: ExternalVar = node_url.into();
-  chain.set_external("node", &mut node);
+  chain.set_external("rpc-server", &mut node);
+
+  let mut signer_key: ExternalVar = signer_key.into();
+  chain.set_external("signer-key", &mut signer_key);
+
+  let mut auth_key: ExternalVar = auth_key.into();
+  chain.set_external("auth-key", &mut auth_key);
 
   let mut type_: ExternalVar = proto_type.into();
   chain.set_external("type", &mut type_);
-
-  let mut key: ExternalVar = auth_key.into();
-  chain.set_external("key", &mut key);
 
   let mut buffer: ExternalVar = buffer.into();
   chain.set_external("buffer", &mut buffer);

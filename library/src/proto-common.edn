@@ -2,7 +2,7 @@
 (def transaction-version 1)
 (def sudo-index 7)
 (def sudo-call 0)
-(def fragments-index 11)
+(def protos-index 11)
 (def add-upload-auth-index 0)
 (def upload-index 2)
 (def patch-index 3)
@@ -35,12 +35,19 @@
 (defchain send-signed-extrinsic
   (| (Take 0) (ExpectString) = .private-key)
   (| (Take 1) (ExpectBytes) = .call-data)
-  (| (Take 2) (ExpectInt) = .nonce)
 
-   ; signer
+  ; signer
   .private-key (Sr25519.PublicKey) (Substrate.AccountId) (Log) = .pub-key
+
   ; multiaddress enum
   [0 .pub-key] (Substrate.Encode ["u8" "a"]) = .signer
+
+  ; account info 
+  [.pub-key] (Substrate.Encode ["a"]) (ToHex) = .account-id-hex
+  ["System" "Account" .account-id-hex] (Substrate.StorageMap) (ToHex) = .account-info-query
+  {"id" 1 "jsonrpc" "2.0" "method" "state_getStorage" "params" [.account-info-query]} (ToJson) (Http.Post .rpc-server)
+  (FromJson) (ExpectTable) (Take "result") (ExpectString) (HexToBytes) 
+  (Substrate.Decode [Type.Int] ["u32"]) (Take 0) = .nonce
 
   ; extra data to be signed
   ; [era nonce weight]
@@ -140,7 +147,7 @@
 
   .payload (Log)
 
-  [fragments-index upload-index .payload] (Do make-calldata) = .upload-call (| (ToHex) (Log "upload-call"))
+  [protos-index upload-index .payload] (Do make-calldata) = .upload-call (| (ToHex) (Log "upload-call"))
   ["//Dave" .upload-call .upload-nonce] (Do send-signed-extrinsic) (Log "upload-call-result")
   [.frag-cid-str .fragment-hash])
 
@@ -172,7 +179,7 @@
 
   .payload (Log)
 
-  [fragments-index patch-index .payload] (Do make-calldata) = .patch-call (| (ToHex) (Log "patch-call"))
+  [protos-index patch-index .payload] (Do make-calldata) = .patch-call (| (ToHex) (Log "patch-call"))
   ["//Dave" .patch-call .patch-nonce] (Do send-signed-extrinsic) (Log "patch-call-result"))
 
 (defchain test-detach
@@ -184,6 +191,6 @@
   [20] (Substrate.Encode ["c"]) (AppendTo .detach-payload)
   "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1" (HexToBytes) (AppendTo .detach-payload)
 
-  [fragments-index detach-index .detach-payload] (Do make-calldata) = .detach-call (| (ToHex) (Log "detach-call"))
+  [protos-index detach-index .detach-payload] (Do make-calldata) = .detach-call (| (ToHex) (Log "detach-call"))
   ["//Dave" .detach-call .detach-nonce] (Do send-signed-extrinsic) (Log "detach-call-result"))
 

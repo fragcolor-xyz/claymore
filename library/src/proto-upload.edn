@@ -1,5 +1,63 @@
-(Chain "fetch-fragment"
-       .node (Log "node")
-       .type (Log "type")
-       .key (Log "key")
-       .buffer (Log "buffer"))
+(Chain
+ "proto-upload"
+
+ .buffer (Brotli.Compress) = .immutable
+
+ ; Vec - 0 len
+ [0] (Substrate.Encode ["c"]) = .no-refs
+
+ ; Vec - 1 len
+ [1] (Substrate.Encode ["c"]) >= .one-tag
+ .type (Match
+        ["code" (-> [0])
+         "audio" (-> [1])
+         "image" (-> [2])]
+        :Passthrough false)
+ (Substrate.Encode ["u8"]) (AppendTo .one-tag)
+
+ ; signer
+ .signer-key (Log) (Sr25519.PublicKey) (Substrate.AccountId) (Log) = .upload-pub-key
+
+ ; account info 
+ [.upload-pub-key] (Substrate.Encode ["a"]) (ToHex) = .upload-account-id-hex
+ ["Protos" "UserNonces" .upload-account-id-hex] (Substrate.StorageMap) (ToHex) = .upload-account-info-query
+ {"id" 1 "jsonrpc" "2.0" "method" "state_getStorage" "params" [.upload-account-info-query]} (ToJson) (Http.Post .rpc-server)
+ (Maybe (-> (FromJson) (ExpectTable) (Take "result") (ExpectString) (HexToBytes)
+            (Substrate.Decode [Type.Int] ["u32"]) (Take 0) (ExpectInt))
+        (-> 0)) = .frag-nonce
+
+ .immutable (Hash.Blake2-256) >= .frag-cid >> .frag-hash-payload = .fragment-hash
+ .no-refs >> .frag-hash-payload ; refs
+ .one-tag >> .frag-hash-payload ; tags
+ "0x00" (HexToBytes) >> .frag-hash-payload ; again no linked asset
+ [.frag-nonce] (Substrate.Encode ["u64"]) >> .frag-hash-payload ; NONCE
+ [0] (Substrate.Encode ["u32"]) >> .frag-hash-payload ; block
+ .frag-hash-payload (Hash.Blake2-256) (ECDSA.Sign .auth-key) >= .payload
+
+ ; block
+ [0] (Substrate.Encode ["u32"]) (AppendTo .payload)
+
+ .no-refs (AppendTo .payload) ; refs
+
+ .one-tag (AppendTo .payload) ; tags
+
+ "0x00" (HexToBytes)
+
+ ; Option None - Linked asset
+ (AppendTo .payload)
+
+ ; Option None - Include cost
+ (AppendTo .payload)
+
+ [.immutable] (Substrate.Encode [nil]) (AppendTo .payload)
+
+ "0x0155a0e40220" (HexToBytes) (PrependTo .frag-cid)
+ .frag-cid (ToBase58) >= .frag-cid-str
+ "z" (PrependTo .frag-cid-str)
+ .frag-cid-str (Log "CID")
+
+ .payload (Log)
+
+ [protos-index upload-index .payload] (Do make-calldata) = .upload-call
+ [.signer-key .upload-call .upload-nonce] (Do send-signed-extrinsic) (Log "upload-call-result")
+ [.frag-cid-str .fragment-hash])
