@@ -1,6 +1,6 @@
 use chainblocks::{
   cbl, cbl_env,
-  cblisp::{new_env, new_sub_env},
+  cblisp::{new_env, new_sub_env, ScriptEnv},
   core::cloneVar,
   types::{ChainRef, ClonedVar, ExternalVar, Node, Table, Var},
 };
@@ -29,14 +29,17 @@ pub struct GetDataRequest {
   pub chain: ClonedVar,
   pub hash: ExternalVar,
   pub result: ExternalVar,
+  pub env: Option<ScriptEnv>,
 }
 
 pub fn start_get_data(fragment_hash: [u8; 32]) -> Box<GetDataRequest> {
   initialize();
 
+  let root = new_env();
+
   let mut request = Box::new(GetDataRequest::default());
 
-  request.chain = cbl!(include_str!("proto-fetch.edn")).unwrap();
+  request.chain = cbl_env!(root, include_str!("proto-fetch.edn")).unwrap();
   let chain = <ChainRef>::try_from(request.chain.0).unwrap();
 
   request.hash = fragment_hash[..].into();
@@ -45,6 +48,8 @@ pub fn start_get_data(fragment_hash: [u8; 32]) -> Box<GetDataRequest> {
   let result: [u8; 0] = [];
   request.result = result[..].into();
   chain.set_external("result", &mut request.result);
+
+  request.env = Some(root);
 
   request
 }
