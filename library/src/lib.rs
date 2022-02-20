@@ -121,7 +121,7 @@ pub fn proto_upload(
   signer_key: &str,
   auth_key: &str,
   proto_type: &str,
-  buffer: &[u8],
+  data: Table,
 ) -> Result<(), &'static str> {
   initialize();
 
@@ -145,8 +145,8 @@ pub fn proto_upload(
   let mut type_: ExternalVar = proto_type.into();
   chain.set_external("type", &mut type_);
 
-  let mut buffer: ExternalVar = buffer.into();
-  chain.set_external("buffer", &mut buffer);
+  let mut data: ExternalVar = (&data).into();
+  chain.set_external("data", &mut data);
 
   let node = Node::default();
   node.schedule(chain);
@@ -156,8 +156,6 @@ pub fn proto_upload(
       break;
     }
   }
-
-  //TODO note `root` is leaking but the issue is in chainblocks repo
 
   Ok(())
 }

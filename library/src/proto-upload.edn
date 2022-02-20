@@ -1,7 +1,7 @@
 (Chain
  "proto-upload"
 
- .buffer (Brotli.Compress) = .immutable
+ .data (ToBytes) (Brotli.Compress) = .immutable
 
  ; Vec - 0 len
  [0] (Substrate.Encode ["c"]) = .no-refs

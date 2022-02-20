@@ -1,8 +1,19 @@
 use clap::{App, AppSettings, Arg};
 use claymore::proto_upload;
 use std::io::Read;
+use chainblocks::types::{Table};
+use std::sync::Once;
+
+static INIT: Once = Once::new();
+
+pub fn initialize() {
+  INIT.call_once(|| {
+    chainblocks::core::init();
+  });
+}
 
 fn main() {
+  initialize();
   let matches = App::new("claytool")
     .about("claymore utility")
     .version("0.1")
@@ -28,6 +39,14 @@ fn main() {
             .help("The type of the proto-fragment to upload")
             .takes_value(true)
             .required_unless_present("help"),
+        )
+        .arg(
+          Arg::new("container")
+            .short('c')
+            .long("container")
+            .help("The container type of the audio proto-fragment to upload")
+            .takes_value(true)
+            .required_if_eq("type", "audio"),
         )
         .arg(
           Arg::new("node")
@@ -67,7 +86,18 @@ fn main() {
         let mut buffer = Vec::new();
         file.read_to_end(&mut buffer).unwrap();
 
-        proto_upload(node, signer, key, type_, &buffer).unwrap();
+        let container = matches.value_of("container").unwrap();
+
+        match container {
+          "ogg" | "mp3" => {},
+          _ => panic!("Invalid container type"),
+        }
+
+        let mut table = Table::new();
+        table.insert_fast_static("container\0", type_.into());
+        table.insert_fast_static("data\0", buffer[..].into());
+
+        proto_upload(node, signer, key, type_, table).unwrap();
       }
     }
     _ => {}

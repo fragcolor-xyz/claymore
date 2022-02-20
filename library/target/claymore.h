@@ -7,10 +7,13 @@
 #define ExternalVar struct CBVar
 #define Var struct CBVar
 
+typedef struct Option_ScriptEnv Option_ScriptEnv;
+
 typedef struct GetDataRequest {
   ClonedVar chain;
   ExternalVar hash;
   ExternalVar result;
+  struct Option_ScriptEnv env;
 } GetDataRequest;
 
 enum PollState_Tag
