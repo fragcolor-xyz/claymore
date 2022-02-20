@@ -45,8 +45,8 @@ pub fn start_get_data(fragment_hash: [u8; 32]) -> Box<GetDataRequest> {
   request.hash = fragment_hash[..].into();
   chain.set_external("hash", &mut request.hash);
 
-  let result: [u8; 0] = [];
-  request.result = result[..].into();
+  let result = Table::new();
+  request.result = (&result).into();
   chain.set_external("result", &mut request.result);
 
   request.env = Some(root);

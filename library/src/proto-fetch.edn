@@ -1,6 +1,6 @@
 (Chain
  "proto-fetch"
- 
+
  .hash >= .frag-cid
  "0x0155a0e40220" (HexToBytes) (PrependTo .frag-cid)
  .frag-cid (ToBase58) >= .url
@@ -9,17 +9,17 @@
  "cache/frag/" (PrependTo .local-path)
  (Maybe
   (->
+   ; read the fragment from the cache
    (ReadFile .local-path)
-   (ExpectBytes) ; TODO
-   )
+   (ExpectBytes))
   (->
    .url (Log "Fetching CID")
    "https://dweb.link/api/v0/block/get/" (PrependTo .url)
    nil (Http.Get .url :Bytes true :Timeout 30)
    (Brotli.Decompress) ; decompress
-   (FromBytes) ; deserialize into chainblocks Vars
-   (ExpectBytes) ; TODO
-         ; store the fragment in the cache
+   (ExpectBytes)
+   ; store the fragment in the cache
    (WriteFile .local-path :Flush true)))
+ (FromBytes) ; deserialize into chainblocks Vars
  (Log)
  > .result)
