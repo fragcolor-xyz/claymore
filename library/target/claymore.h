@@ -49,7 +49,7 @@ struct GetDataRequest *clmrGetDataStart(const uint8_t *fragment_hash);
 
 void clmrGetDataFree(struct GetDataRequest *request);
 
-bool clmrPoll(const Var *chain, union PollState **output);
+bool clmrPoll(ChainRef chain, union PollState **output);
 
 void clmrPollFree(union PollState *state);
 

@@ -90,8 +90,7 @@ pub fn poll_chain(chain: ChainRef) -> PollState {
 // C bindings
 
 #[no_mangle]
-pub extern "C" fn clmrPoll(chain: *const Var, output: *mut *mut PollState) -> bool {
-  let chain = unsafe { <ChainRef>::try_from(*chain).unwrap() };
+pub extern "C" fn clmrPoll(chain: ChainRef, output: *mut *mut PollState) -> bool {
   match poll_chain(chain) {
     PollState::Running => false,
     PollState::Failed(err) => {
