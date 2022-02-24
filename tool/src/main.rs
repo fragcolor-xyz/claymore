@@ -1,7 +1,7 @@
+use chainblocks::types::Table;
 use clap::{App, AppSettings, Arg};
 use claymore::proto_upload;
 use std::io::Read;
-use chainblocks::types::{Table};
 use std::sync::Once;
 
 static INIT: Once = Once::new();
@@ -89,7 +89,7 @@ fn main() {
         let container = matches.value_of("container").unwrap();
 
         match container {
-          "ogg" | "mp3" => {},
+          "ogg" | "mp3" => {}
           _ => panic!("Invalid container type"),
         }
 
