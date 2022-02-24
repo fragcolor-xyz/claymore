@@ -41,6 +41,16 @@ typedef union PollState {
   };
 } PollState;
 
+typedef struct UploadRequest {
+  ClonedVar chain;
+  ExternalVar node;
+  ExternalVar signer_key;
+  ExternalVar auth_key;
+  ExternalVar proto_type;
+  ExternalVar data;
+  struct Option_ScriptEnv env;
+} UploadRequest;
+
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
@@ -52,6 +62,10 @@ void clmrGetDataFree(struct GetDataRequest *request);
 bool clmrPoll(ChainRef chain, union PollState **output);
 
 void clmrPollFree(union PollState *state);
+
+struct UploadRequest *clmrUpload(const Var *var);
+
+void clmrUploadFree(struct UploadRequest *request);
 
 #ifdef __cplusplus
 } // extern "C"

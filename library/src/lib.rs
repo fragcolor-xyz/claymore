@@ -32,6 +32,18 @@ pub struct GetDataRequest {
   pub env: Option<ScriptEnv>,
 }
 
+#[repr(C)]
+#[derive(Default)]
+pub struct UploadRequest {
+  pub chain: ClonedVar,
+  pub node: ExternalVar,
+  pub signer_key: ExternalVar,
+  pub auth_key: ExternalVar,
+  pub proto_type: ExternalVar,
+  pub data: ExternalVar,
+  pub env: Option<ScriptEnv>,
+}
+
 pub fn start_get_data(fragment_hash: [u8; 32]) -> Box<GetDataRequest> {
   initialize();
 
@@ -115,6 +127,45 @@ pub extern "C" fn clmrPollFree(state: *mut PollState) {
   }
 }
 
+pub fn start_proto_upload(
+  node_url: &str,
+  signer_key: &str,
+  auth_key: &str,
+  proto_type: &str,
+  data: Table,
+) -> Box<UploadRequest> {
+  initialize();
+
+  let root = new_env();
+
+  let mut request = Box::new(UploadRequest::default());
+
+  cbl_env!(root, concat!("(do ", include_str!("proto-common.edn"), ")")).unwrap();
+
+  request.chain =
+    cbl_env!(root, include_str!("proto-upload.edn")).expect("proto-upload script processing");
+  let chain = <ChainRef>::try_from(request.chain.0).expect("proto-upload chain");
+
+  request.node = node_url.into();
+  chain.set_external("rpc-server", &mut request.node);
+
+  request.signer_key = signer_key.into();
+  chain.set_external("signer-key", &mut request.signer_key);
+
+  request.auth_key = auth_key.into();
+  chain.set_external("auth-key", &mut request.auth_key);
+
+  request.proto_type = proto_type.into();
+  chain.set_external("type", &mut request.proto_type);
+
+  request.data = (&data).into();
+  chain.set_external("data", &mut request.data);
+
+  request.env = Some(root);
+
+  request
+}
+
 pub fn proto_upload(
   node_url: &str,
   signer_key: &str,
@@ -122,41 +173,57 @@ pub fn proto_upload(
   proto_type: &str,
   data: Table,
 ) -> Result<(), &'static str> {
-  initialize();
-
-  let root = new_env();
-
-  cbl_env!(root, concat!("(do ", include_str!("proto-common.edn"), ")")).unwrap();
-
-  let chain =
-    cbl_env!(root, include_str!("proto-upload.edn")).expect("proto-upload script processing");
-  let chain = <ChainRef>::try_from(chain.0).expect("proto-upload chain");
-
-  let mut node: ExternalVar = node_url.into();
-  chain.set_external("rpc-server", &mut node);
-
-  let mut signer_key: ExternalVar = signer_key.into();
-  chain.set_external("signer-key", &mut signer_key);
-
-  let mut auth_key: ExternalVar = auth_key.into();
-  chain.set_external("auth-key", &mut auth_key);
-
-  let mut type_: ExternalVar = proto_type.into();
-  chain.set_external("type", &mut type_);
-
-  let mut data: ExternalVar = (&data).into();
-  chain.set_external("data", &mut data);
+  let request = start_proto_upload(node_url, signer_key, auth_key, proto_type, data);
+  let chain = <ChainRef>::try_from(request.chain.0).unwrap();
 
   let node = Node::default();
   node.schedule(chain);
 
   loop {
-    if !node.tick() {
-      break;
+    node.tick();
+    let status = poll_chain(chain);
+    match status {
+      PollState::Finished(_) => {
+        break;
+      }
+      PollState::Failed(err) => {
+        let err = <&str>::try_from(&err.0).unwrap();
+        panic!("{}", err);
+      }
+      PollState::Running => {
+        continue;
+      }
     }
   }
 
   Ok(())
+}
+
+#[no_mangle]
+pub extern "C" fn clmrUpload(var: *const Var) -> *mut UploadRequest {
+  let table: Table;
+  unsafe {
+    table = (&*var).try_into().unwrap();
+  }
+
+  // FIXME hardcoded values
+  let node = "http://127.0.0.1:9933";
+  let signer = "//Dave";
+  let key = "//Alice";
+  // FIXME extract it from table or modify the EDN code to do the same
+  let type_ = "audio";
+
+  // TODO add checks to make sure the table is well-formed
+
+  let boxed = start_proto_upload(&node, &signer, &key, &type_, table);
+  Box::into_raw(boxed)
+}
+
+#[no_mangle]
+pub extern "C" fn clmrUploadFree(request: *mut UploadRequest) {
+  unsafe {
+    Box::from_raw(request);
+  }
 }
 
 #[test]
