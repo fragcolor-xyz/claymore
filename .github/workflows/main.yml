@@ -8,31 +8,126 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  Windows:
+    runs-on: windows-2019
     strategy:
       fail-fast: false
+      matrix:
+        build-type: ["Debug", "Release"]
+        # bitness: [32bits, 64bits]
+        bitness: [64bits]
+        include:
+          # - bitness: 32bits
+          #   msystem: MINGW32
+          #   arch: i686
+          #   artifact: libclaymore-win32
+          - bitness: 64bits
+            msystem: MINGW64
+            arch: x86_64
+            artifact: libclaymore-win64
     steps:
-      - name: Set up dependencies
-        run: |
-          sudo apt-get -y update
-          sudo apt-get -y install build-essential git cmake wget clang ninja-build libboost-all-dev xorg-dev libdbus-1-dev libssl-dev mesa-utils
-          rustup update
-      - name: Checkout
+      - name: Checkout claymore
         uses: actions/checkout@v2
         with:
           fetch-depth: 1
           submodules: recursive
           path: claymore
-      - name: Checkout Chainblocks
+      - name: Checkout chainblocks
         uses: actions/checkout@v2
         with:
           repository: fragcolor-xyz/chainblocks
-          ref: devel
           fetch-depth: 1
           submodules: recursive
           path: chainblocks
-      - name: Test
+      - name: Set up rust
+        env:
+          RUSTUP_USE_CURL: 1
+        run: |
+          rustup update
+          rustup toolchain install nightly
+          rustup +nightly target add ${{ matrix.arch }}-pc-windows-gnu
+          rustup default nightly-${{ matrix.arch }}-pc-windows-gnu
+      # - name: Set up 32-bits
+      #   env:
+      #     RUSTUP_USE_CURL: 1
+      #   if: ${{ matrix.bitness == '32bits' }}
+      #   shell: bash
+      #   run: |
+      #     # Native libClang required for rust bindgen
+      #     # choco exit with code 1 after successful install
+      #     choco install -y --force llvm || exit 0
+      #     echo "LIBCLANG_PATH=C:\Program Files\LLVM\lib" >> $GITHUB_ENV
+      - uses: Swatinem/rust-cache@v1
+        if: ${{ github.event_name != 'workflow_dispatch' }}
+        with:
+          key: ${{ matrix.build-type }}
+      - name: Set up MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{ matrix.msystem }}
+          release: false
+          path-type: inherit
+          install: >-
+            base-devel
+            mingw-w64-${{ matrix.arch }}-toolchain
+            mingw-w64-${{ matrix.arch }}-cmake
+            mingw-w64-${{ matrix.arch }}-ninja
+            mingw-w64-${{ matrix.arch }}-clang
+            mingw-w64-${{ matrix.arch }}-lld
+            wget
+      - name: Bootstrap
+        shell: msys2 {0}
+        run: |
+          cd chainblocks
+          ./bootstrap
+      - name: Build (Release)
+        if: ${{ matrix.build-type == 'Release' }}
+        env:
+          RUST_BACKTRACE: 1
+        shell: msys2 {0}
         run: |
           cd claymore
-          cargo test
+          cargo build --release -p claymore
+      - name: Build (Debug)
+        if: ${{ matrix.build-type == 'Debug' }}
+        env:
+          RUST_BACKTRACE: 1
+        shell: msys2 {0}
+        run: |
+          cd claymore
+          cargo build -p claylib
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.artifact }}-${{ matrix.build-type }}
+          path: claymore/target/${{ matrix.build-type }}/claylib.dll
+          if-no-files-found: error
+
+  # test:
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     fail-fast: false
+  #   steps:
+  #     - name: Set up dependencies
+  #       run: |
+  #         sudo apt-get -y update
+  #         sudo apt-get -y install build-essential git cmake wget clang ninja-build libboost-all-dev xorg-dev libdbus-1-dev libssl-dev mesa-utils
+  #         rustup update
+  #     - name: Checkout
+  #       uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 1
+  #         submodules: recursive
+  #         path: claymore
+  #     - name: Checkout Chainblocks
+  #       uses: actions/checkout@v2
+  #       with:
+  #         repository: fragcolor-xyz/chainblocks
+  #         ref: devel
+  #         fetch-depth: 1
+  #         submodules: recursive
+  #         path: chainblocks
+  #     - name: Test
+  #       run: |
+  #         cd claymore
+  #         cargo test
