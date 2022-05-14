@@ -58,6 +58,11 @@
 
  .payload (Log)
 
+ ; open ws to listen events
+ (WebSocket.Client :Name "ws-client" :Host "127.0.0.1" :Port 9944 :Secure false)
+ 
+
  [protos-index upload-index .payload] (Do make-calldata) = .upload-call
  [.signer-key .upload-call] (Do send-signed-extrinsic) (Log "upload-call-result")
+
  [.frag-cid-str .fragment-hash])
