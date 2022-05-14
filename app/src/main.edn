@@ -1,2 +1,3 @@
-(defchain main
-  (Msg "Hello world!"))
+(defloop main
+  (Msg "Hello world!")
+  (Pause 1.0))
