@@ -1,6 +1,6 @@
 use chainblocks::types::Table;
 use clap::{App, AppSettings, Arg};
-use claymore::proto_upload;
+use claylib::proto_upload;
 use std::io::Read;
 use std::sync::Once;
 

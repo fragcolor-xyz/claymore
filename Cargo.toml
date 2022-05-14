@@ -2,5 +2,6 @@
 
 members = [
     "library",
-    "tool"
+    "tool",
+    "app"
 ]

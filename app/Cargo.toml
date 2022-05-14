@@ -1,5 +1,5 @@
 [package]
-name = "claytool"
+name = "claymore"
 version = "0.1.0"
 edition = "2021"
 
@@ -9,4 +9,3 @@ edition = "2021"
 claylib = { path = "../library" }
 chainblocks = { path = "../../chainblocks/rust", features = ["run_bindgen", "dllblock", "cblisp"] }
 edn-rs = "0.17.0"
-clap = { version = "3.0.14", features = ["derive"] }

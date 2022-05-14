@@ -1,0 +1,2 @@
+(defchain main
+  (Msg "Hello world!"))
