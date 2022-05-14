@@ -17,6 +17,10 @@ fn main() {
     if !main_node.tick() {
       break;
     }
+
+    // TODO manipulated node/chains etc
+
+    // TODO make this perfect timing (we have that in mal)
     sleep(QUANTUM_TIME);
   }
 }
