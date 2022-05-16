@@ -57,14 +57,6 @@ fn main() {
             .takes_value(true),
         )
         .arg(
-          Arg::new("key")
-            .short('k')
-            .long("key")
-            .help("The private key (or mnemonic/preset) of the upload authority")
-            .default_value("//Alice")
-            .takes_value(true),
-        )
-        .arg(
           Arg::new("signer")
             .short('s')
             .long("signer")
@@ -80,7 +72,6 @@ fn main() {
       if let Some(upload) = matches.value_of("file") {
         let node = matches.value_of("node").unwrap();
         let type_ = matches.value_of("type").unwrap();
-        let key = matches.value_of("key").unwrap();
         let signer = matches.value_of("signer").unwrap();
         let mut file = std::fs::File::open(upload).expect("File to upload as proto-fragment");
         let mut buffer = Vec::new();
@@ -97,7 +88,7 @@ fn main() {
         table.insert_fast_static("container\0", type_.into());
         table.insert_fast_static("data\0", buffer[..].into());
 
-        proto_upload(node, signer, key, type_, table).unwrap();
+        proto_upload(node, signer, type_, table).unwrap();
       }
     }
     _ => {}

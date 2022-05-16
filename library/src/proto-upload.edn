@@ -15,29 +15,9 @@
         :Passthrough false)
  (Substrate.Encode ["u8"]) (AppendTo .one-tag)
 
- ; signer
- .signer-key (Log) (Sr25519.PublicKey) (Substrate.AccountId) (Log) = .upload-pub-key
+ .immutable (Hash.Blake2-256) >= .frag-cid = .fragment-hash
 
- ; account info 
- [.upload-pub-key] (Substrate.Encode ["a"]) (ToHex) = .upload-account-id-hex
- ["Protos" "UserNonces" .upload-account-id-hex] (Substrate.StorageMap) (ToHex) = .upload-account-info-query
- {"id" 1 "jsonrpc" "2.0" "method" "state_getStorage" "params" [.upload-account-info-query]} (ToJson) (Http.Post .rpc-server)
- (Maybe (-> (FromJson) (ExpectTable) (Take "result") (ExpectString) (HexToBytes)
-            (Substrate.Decode [Type.Int] ["u32"]) (Take 0) (ExpectInt))
-        (-> 0)) = .frag-nonce
-
- .immutable (Hash.Blake2-256) >= .frag-cid >> .frag-hash-payload = .fragment-hash
- .no-refs >> .frag-hash-payload ; refs
- .one-tag >> .frag-hash-payload ; tags
- "0x00" (HexToBytes) >> .frag-hash-payload ; again no linked asset
- [.frag-nonce] (Substrate.Encode ["u64"]) >> .frag-hash-payload ; NONCE
- [0] (Substrate.Encode ["u32"]) >> .frag-hash-payload ; block
- .frag-hash-payload (Hash.Blake2-256) (ECDSA.Sign .auth-key) >= .payload
-
- ; block
- [0] (Substrate.Encode ["u32"]) (AppendTo .payload)
-
- .no-refs (AppendTo .payload) ; refs
+ .no-refs >= .payload ; refs
 
  .one-tag (AppendTo .payload) ; tags
 

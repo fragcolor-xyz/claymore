@@ -130,7 +130,6 @@ pub extern "C" fn clmrPollFree(state: *mut PollState) {
 pub fn start_proto_upload(
   node_url: &str,
   signer_key: &str,
-  auth_key: &str,
   proto_type: &str,
   data: Table,
 ) -> Box<UploadRequest> {
@@ -152,9 +151,6 @@ pub fn start_proto_upload(
   request.signer_key = signer_key.into();
   chain.set_external("signer-key", &mut request.signer_key);
 
-  request.auth_key = auth_key.into();
-  chain.set_external("auth-key", &mut request.auth_key);
-
   request.proto_type = proto_type.into();
   chain.set_external("type", &mut request.proto_type);
 
@@ -169,11 +165,10 @@ pub fn start_proto_upload(
 pub fn proto_upload(
   node_url: &str,
   signer_key: &str,
-  auth_key: &str,
   proto_type: &str,
   data: Table,
 ) -> Result<(), &'static str> {
-  let request = start_proto_upload(node_url, signer_key, auth_key, proto_type, data);
+  let request = start_proto_upload(node_url, signer_key, proto_type, data);
   let chain = <ChainRef>::try_from(request.chain.0).unwrap();
 
   let node = Node::default();
@@ -215,7 +210,7 @@ pub extern "C" fn clmrUpload(var: *const Var) -> *mut UploadRequest {
 
   // TODO add checks to make sure the table is well-formed
 
-  let boxed = start_proto_upload(&node, &signer, &key, &type_, table);
+  let boxed = start_proto_upload(&node, &signer, &type_, table);
   Box::into_raw(boxed)
 }
 
