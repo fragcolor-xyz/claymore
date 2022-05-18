@@ -87,7 +87,7 @@ jobs:
         shell: msys2 {0}
         run: |
           cd claymore
-          cargo build --release -p claymore
+          cargo build --release
       - name: Build (Debug)
         if: ${{ matrix.build-type == 'Debug' }}
         env:
@@ -95,7 +95,7 @@ jobs:
         shell: msys2 {0}
         run: |
           cd claymore
-          cargo build -p claylib
+          cargo build
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
