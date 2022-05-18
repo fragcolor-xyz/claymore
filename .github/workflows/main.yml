@@ -103,31 +103,40 @@ jobs:
           path: claymore/target/${{ matrix.build-type }}/claylib.dll
           if-no-files-found: error
 
-  # test:
-  #   runs-on: ubuntu-latest
-  #   strategy:
-  #     fail-fast: false
-  #   steps:
-  #     - name: Set up dependencies
-  #       run: |
-  #         sudo apt-get -y update
-  #         sudo apt-get -y install build-essential git cmake wget clang ninja-build libboost-all-dev xorg-dev libdbus-1-dev libssl-dev mesa-utils
-  #         rustup update
-  #     - name: Checkout
-  #       uses: actions/checkout@v2
-  #       with:
-  #         fetch-depth: 1
-  #         submodules: recursive
-  #         path: claymore
-  #     - name: Checkout Chainblocks
-  #       uses: actions/checkout@v2
-  #       with:
-  #         repository: fragcolor-xyz/chainblocks
-  #         ref: devel
-  #         fetch-depth: 1
-  #         submodules: recursive
-  #         path: chainblocks
-  #     - name: Test
-  #       run: |
-  #         cd claymore
-  #         cargo test
+  Linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout claymore
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+          submodules: recursive
+          path: claymore
+      - name: Checkout chainblocks
+        uses: actions/checkout@v2
+        with:
+          repository: fragcolor-xyz/chainblocks
+          fetch-depth: 1
+          submodules: recursive
+          path: chainblocks
+      - name: Set up rust
+        run: |
+          rustup update
+          rustup toolchain install nightly
+      - uses: Swatinem/rust-cache@v1
+      - name: Set up dependencies
+        run: |
+          sudo apt-get -y update
+          sudo apt-get -y install build-essential git cmake wget clang ninja-build xorg-dev libdbus-1-dev libssl-dev mesa-utils
+      - name: Bootstrap
+        run: |
+          cd chainblocks
+          ./bootstrap
+      - name: Build
+        run: |
+          cd claymore
+          cargo build
+      - name: Test
+        run: |
+          cd claymore
+          cargo test
