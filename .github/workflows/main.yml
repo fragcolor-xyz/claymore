@@ -136,7 +136,7 @@ jobs:
         run: |
           cd claymore
           cargo build
-      - name: Test
-        run: |
-          cd claymore
-          cargo test
+      # - name: Test
+      #   run: |
+      #     cd claymore
+      #     cargo test
