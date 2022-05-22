@@ -3,7 +3,9 @@ use std::time::{Duration, Instant};
 use chainblocks::cbl_env;
 use chainblocks::cblisp::new_env;
 use chainblocks::core::{init, sleep};
-use chainblocks::types::{ClonedVar, Node};
+use chainblocks::types::{ClonedVar, Node, Table};
+use claylib::program::Program;
+use claylib::ProtoTrait;
 
 const QUANTUM_TIME: f64 = 1.0 / 120.0;
 
@@ -12,8 +14,12 @@ fn main() {
 
   let env = new_env();
   let main_node = Node::default();
-  let main_chain = cbl_env!(env, concat!("(do ", include_str!("main.edn"), ")")).unwrap();
-  main_node.schedule(main_chain.0.try_into().unwrap());
+
+  let main: ClonedVar = cbl_env!(env, include_str!("main.edn")).unwrap();
+  let traits: Table = main.0.as_ref().try_into().expect("Traits Table");
+  let program = Program::distill(&traits).expect("Program");
+
+  // main_node.schedule(main_chain.0.try_into().unwrap());
 
   let quantum = Duration::from_secs_f64(QUANTUM_TIME);
   let zero = Duration::from_secs_f64(0.0);

@@ -8,6 +8,14 @@ use edn_rs::{edn, Edn, Map};
 use std::sync::Once;
 use std::{thread, time};
 
+pub mod program;
+
+pub trait ProtoTrait {
+  fn distill(traits: &Table) -> Result<Self, &'static str>
+  where
+    Self: Sized;
+}
+
 static INIT: Once = Once::new();
 
 pub fn initialize() {
