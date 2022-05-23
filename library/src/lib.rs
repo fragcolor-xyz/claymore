@@ -302,6 +302,7 @@ fn sub_envs() {
 }
 
 #[test]
+#[ignore]
 fn fragment_get_data_test() {
   initialize();
 
