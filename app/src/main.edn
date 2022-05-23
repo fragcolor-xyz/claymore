@@ -1,22 +1,22 @@
-{:Program
- {:OnRez
-  (| (Msg "Start")
-     "This is a message" = .message
+(deftrait Program
+  :OnRez
+  (-> (Msg "Start")
+      "This is a message" = .message
       ; setup default preferences
-     1024 >= .window-width
-     1024 >= .window-height
+      1024 >= .window-width
+      1024 >= .window-height
       ; reload preferences file if available
-     (Maybe
-      (->
-       "claymore.json" (FS.Read) (FromJson true)
-       (ExpectTable)
-       (| (Take "width") (ExpectInt) > .window-width)
-       (| (Take "height") (ExpectInt) > .window-height)
-       nil)
-      (-> nil)))
+      (Maybe
+       (->
+        "claymore.json" (FS.Read) (FromJson true)
+        (ExpectTable)
+        (| (Take "width") (ExpectInt) > .window-width)
+        (| (Take "height") (ExpectInt) > .window-height)
+        nil)
+       (-> nil)))
   :OnDerez
-  (| (Msg "Stop"))
+  (-> (Msg "Stop"))
   :Advance
-  (| (Msg "Alive")
-     .message (Log)
-     (Pause 1.0))}}
+  (-> (Msg "Alive")
+      .message (Log)
+      (Pause 1.0)))
