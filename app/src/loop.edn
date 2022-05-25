@@ -1,0 +1,4 @@
+(defchain Claymore
+  (get Program :OnRez)
+  (Do (Chain "Claymore Main Loop" :Looped (get Program :Advance)))
+  (get Program :OnDerez))
