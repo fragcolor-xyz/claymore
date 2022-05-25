@@ -18,23 +18,37 @@ fn main() {
   // exec the script, notice we on purpose return nil to avoid varifying the trait inside!
   // the reason being, varify will consume the blocks and null them out, which is not what we want
   let _ = cbl_env!(env, concat!("(do ", include_str!("main.edn"), " nil)")).expect("main.edn");
-  // extract the trait we need
-  let program: ClonedVar = cbl_env!(env, "Program").expect("Program ClonedVar");
+  // extract the trait we need, this step consumes the blocks from the script env, Program will be invalid after!
+  let program: ClonedVar = cbl_env!(env, "(do (println Program) Program)").expect("Program ClonedVar");
   let program: Table = program.0.as_ref().try_into().expect("Program Table");
   let program = Program::distill(&program).expect("Program distill");
 
   let main_chain = Chain::default();
-  main_chain.set_looped(true);
   main_chain.set_name("Main Claymore Chain");
 
-  if let Some(on_rez) = &program.on_rez {
-    let once = BlockRef::create("Once");
-    once.set_parameter(0, on_rez.into());
-    main_chain.add_block(once);
+  if let Some(on_rez) = program.on_rez {
+    for block in on_rez {
+      main_chain.add_block(block.try_into().expect("OnRez Block"));
+    }
   }
 
+  let looped_chain = Chain::default();
+  looped_chain.set_name("Claymore Main Loop Chain");
+  looped_chain.set_looped(true);
+
   for block in program.advance {
-    main_chain.add_block(block.try_into().expect("Advance Block"));
+    looped_chain.add_block(block.try_into().expect("Advance Block"));
+  }
+
+  let dispatch_loop = BlockRef::create("Dispatch");
+  dispatch_loop.set_parameter(0, looped_chain.0.into());
+
+  main_chain.add_block(dispatch_loop);
+
+  if let Some(on_derez) = program.on_derez {
+    for block in on_derez {
+      main_chain.add_block(block.try_into().expect("OnDerez Block"));
+    }
   }
 
   main_node.schedule(main_chain.0);

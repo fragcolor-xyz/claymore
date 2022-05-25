@@ -2,6 +2,7 @@
   :OnRez
   (-> (Msg "Start")
       "This is a message" = .message
+      0 >= .counter
       ; setup default preferences
       1024 >= .window-width
       1024 >= .window-height
@@ -17,6 +18,8 @@
   :OnDerez
   (-> (Msg "Stop"))
   :Advance
-  (-> (Msg "Alive")
+  (-> (Math.Inc .counter)
+      .counter (When (IsMoreEqual 10) (Return))
+      (Msg "Alive")
       .message (Log)
       (Pause 1.0)))
