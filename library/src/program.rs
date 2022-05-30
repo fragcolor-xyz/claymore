@@ -1,5 +1,5 @@
 use crate::ProtoTrait;
-use chainblocks::types::{Seq, Table};
+use shards::types::{Seq, Table};
 
 pub struct Program {
   pub on_rez: Option<Seq>,

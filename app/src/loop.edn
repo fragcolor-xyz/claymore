@@ -1,4 +1,4 @@
-(defchain Claymore
+(defwire Claymore
   (get Program :OnRez)
-  (Do (Chain "Claymore Main Loop" :Looped (get Program :Advance)))
+  (Do (Wire "Claymore Main Loop" :Looped (get Program :Advance)))
   (get Program :OnDerez))

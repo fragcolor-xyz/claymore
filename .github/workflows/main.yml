@@ -32,13 +32,13 @@ jobs:
           fetch-depth: 1
           submodules: recursive
           path: claymore
-      - name: Checkout chainblocks
+      - name: Checkout shards
         uses: actions/checkout@v2
         with:
-          repository: fragcolor-xyz/chainblocks
+          repository: fragcolor-xyz/shards
           fetch-depth: 1
           submodules: recursive
-          path: chainblocks
+          path: shards
       - name: Set up rust
         env:
           RUSTUP_USE_CURL: 1
@@ -78,7 +78,7 @@ jobs:
       - name: Bootstrap
         shell: msys2 {0}
         run: |
-          cd chainblocks
+          cd shards
           ./bootstrap
       - name: Build (Release)
         if: ${{ matrix.build-type == 'Release' }}
@@ -112,13 +112,13 @@ jobs:
           fetch-depth: 1
           submodules: recursive
           path: claymore
-      - name: Checkout chainblocks
+      - name: Checkout shards
         uses: actions/checkout@v2
         with:
-          repository: fragcolor-xyz/chainblocks
+          repository: fragcolor-xyz/shards
           fetch-depth: 1
           submodules: recursive
-          path: chainblocks
+          path: shards
       - name: Set up rust
         run: |
           rustup update
@@ -130,7 +130,7 @@ jobs:
           sudo apt-get -y install build-essential git cmake wget clang ninja-build xorg-dev libdbus-1-dev libssl-dev mesa-utils
       - name: Bootstrap
         run: |
-          cd chainblocks
+          cd shards
           ./bootstrap
       - name: Build
         run: |

@@ -1,4 +1,4 @@
-use chainblocks::types::Table;
+use shards::types::Table;
 use clap::{App, AppSettings, Arg};
 use claylib::proto_upload;
 use std::io::Read;
@@ -8,7 +8,7 @@ static INIT: Once = Once::new();
 
 pub fn initialize() {
   INIT.call_once(|| {
-    chainblocks::core::init();
+    shards::core::init();
   });
 }
 

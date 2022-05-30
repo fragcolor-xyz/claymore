@@ -12,7 +12,7 @@
   (Setup
    100 >= .tries)
   (Maybe (->
-          {"id" 1 "jsonrpc" "2.0" "method" "chain_getBlockHash" "params" [0]} (ToJson) (Http.Post .rpc-server)
+          {"id" 1 "jsonrpc" "2.0" "method" "wire_getShardHash" "params" [0]} (ToJson) (Http.Post .rpc-server)
           (FromJson) (ExpectTable) (Take "result") (ExpectString) (Log)
           (Stop))
          (->
@@ -55,7 +55,7 @@
   [0 .nonce 0] (Substrate.Encode ["u8" "c" "c"]) = .extra-data
 
   ; TODO, this should be a CONSTANT actually
-  {"id" 1 "jsonrpc" "2.0" "method" "chain_getBlockHash" "params" [0]} (ToJson) (Http.Post .rpc-server)
+  {"id" 1 "jsonrpc" "2.0" "method" "wire_getShardHash" "params" [0]} (ToJson) (Http.Post .rpc-server)
   (FromJson) (ExpectTable) (Take "result") (ExpectString) (Log) (HexToBytes) (Log) = .node-genesis-hash
 
   ; additional data to be signed
