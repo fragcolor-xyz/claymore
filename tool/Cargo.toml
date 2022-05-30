@@ -7,6 +7,6 @@ edition = "2021"
 
 [dependencies]
 claylib = { path = "../library" }
-chainblocks = { path = "../../chainblocks/rust", features = ["run_bindgen", "dllblock", "cblisp"] }
+shards = { path = "../../shards/rust", features = ["run_bindgen", "dllshard", "scripting"] }
 edn-rs = "0.17.0"
 clap = { version = "3.0.14", features = ["derive"] }

@@ -1,4 +1,4 @@
-(Chain "test-chain" :Looped ; set looped in order to pass 1 tick test
+(Wire "test-wire" :Looped ; set looped in order to pass 1 tick test
        .extern1 (ExpectInt)
        (Log "adding 10 to")
        (Math.Add 10) > .result

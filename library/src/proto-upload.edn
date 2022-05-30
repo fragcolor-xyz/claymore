@@ -1,4 +1,4 @@
-(Chain
+(Wire
  "proto-upload"
 
  .data (ToBytes) (Brotli.Compress) = .immutable

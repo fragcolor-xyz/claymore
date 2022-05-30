@@ -2,15 +2,15 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <chainblocks.h>
+#include <shards.h>
 
-#define ExternalVar struct CBVar
-#define Var struct CBVar
+#define ExternalVar struct SHVar
+#define Var struct SHVar
 
 typedef struct Option_ScriptEnv Option_ScriptEnv;
 
 typedef struct GetDataRequest {
-  ClonedVar chain;
+  ClonedVar wire;
   ExternalVar hash;
   ExternalVar result;
   struct Option_ScriptEnv env;
@@ -42,7 +42,7 @@ typedef union PollState {
 } PollState;
 
 typedef struct UploadRequest {
-  ClonedVar chain;
+  ClonedVar wire;
   ExternalVar node;
   ExternalVar signer_key;
   ExternalVar auth_key;
@@ -59,7 +59,7 @@ struct GetDataRequest *clmrGetDataStart(const uint8_t *fragment_hash);
 
 void clmrGetDataFree(struct GetDataRequest *request);
 
-bool clmrPoll(ChainRef chain, union PollState **output);
+bool clmrPoll(WireRef wire, union PollState **output);
 
 void clmrPollFree(union PollState *state);
 

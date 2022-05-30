@@ -9,7 +9,7 @@ crate-type = ["cdylib", "rlib"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-chainblocks = { path = "../../chainblocks/rust", features = ["run_bindgen", "dllblock", "cblisp"] }
+shards = { path = "../../shards/rust", features = ["run_bindgen", "dllshard", "scripting"] }
 edn-rs = "0.17.0"
 
 [build-dependencies]
