@@ -21,7 +21,7 @@
   .tries (Assert.IsNot 0)
   (Log "Waiting for port"))
 
-(defchain make-calldata
+(defwire make-calldata
   (| (Take 0) (ExpectInt) = .pallet-idx)
   (| (Take 1) (ExpectInt) = .call-idx)
   ; >= copy to allow nesting
@@ -32,7 +32,7 @@
   .args (AppendTo .call-data)
   .call-data)
 
-(defchain send-signed-extrinsic
+(defwire send-signed-extrinsic
   (| (Take 0) (ExpectString) = .private-key)
   (| (Take 1) (ExpectBytes) = .call-data)
 
@@ -88,7 +88,7 @@
   (WebSocket.ReadString .ws-client)
   (Log "Next")
   (Repeat (-> (WebSocket.ReadString .ws-client) (Log)) :Times 20)
-  ;; {"id" 1 "jsonrpc" "2.0" "method" "chain_subscribeAllHeads"} (ToJson)
+  ;; {"id" 1 "jsonrpc" "2.0" "method" "wire_subscribeAllHeads"} (ToJson)
   ;; (WebSocket.WriteString .ws-client)
   ;; (WebSocket.ReadString .ws-client)
   

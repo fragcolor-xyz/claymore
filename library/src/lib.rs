@@ -91,7 +91,7 @@ pub extern "C" fn clmrGetDataFree(request: *mut GetDataRequest) {
   }
 }
 
-pub fn poll_chain(wire: WireRef) -> PollState {
+pub fn poll_wire(wire: WireRef) -> PollState {
   match wire.get_result() {
     Ok(result) => {
       if let Some(result) = result {
@@ -111,7 +111,7 @@ pub fn poll_chain(wire: WireRef) -> PollState {
 
 #[no_mangle]
 pub extern "C" fn clmrPoll(wire: WireRef, output: *mut *mut PollState) -> bool {
-  match poll_chain(wire) {
+  match poll_wire(wire) {
     PollState::Running => false,
     PollState::Failed(err) => {
       unsafe {
@@ -184,7 +184,7 @@ pub fn proto_upload(
 
   loop {
     mesh.tick();
-    let status = poll_chain(wire);
+    let status = poll_wire(wire);
     match status {
       PollState::Finished(_) => {
         break;
@@ -321,7 +321,7 @@ fn fragment_get_data_test() {
 
   loop {
     mesh.tick();
-    let status = poll_chain(wire);
+    let status = poll_wire(wire);
     match status {
       PollState::Finished(result) => {
         let result = <&[u8]>::try_from(&result.0).unwrap();
